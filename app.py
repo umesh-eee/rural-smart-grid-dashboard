@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from datetime import datetime
 
 st.set_page_config(page_title='Smart Grid Dashboard', layout='wide')
 
@@ -10,6 +11,77 @@ st.set_page_config(page_title='Smart Grid Dashboard', layout='wide')
 # -------------------------------------------------
 st.title('⚡ Rural Smart Grid Monitoring Dashboard')
 st.markdown('### Warangal Distribution Zone')
+# -------------------------------------------------
+# SCADA Integration Status
+# -------------------------------------------------
+st.markdown('---')
+st.subheader('🏭 Industrial SCADA Integration')
+# -------------------------------------------------
+# Substation selector
+# -------------------------------------------------
+substation = st.selectbox(
+    'Select Substation',
+    ['Warangal 132/33kV', 'Hanamkonda 132/33kV', 'Kazipet 132/33kV']
+)
+
+st.info(f'Active SCADA Station: {substation}')
+# -------------------------------------------------
+# Simulated feeder telemetry
+# -------------------------------------------------
+st.subheader('📡 Feeder Telemetry')
+
+telemetry = pd.DataFrame({
+    'Feeder': ['FDR-01', 'FDR-02', 'FDR-03', 'FDR-04'],
+    'Voltage_kV': [11.2, 10.7, 11.0, 10.5],
+    'Current_A': [120, 185, 96, 210],
+    'Power_MW': [2.1, 3.4, 1.5, 3.8],
+    'Breaker': ['CLOSED', 'OPEN', 'CLOSED', 'CLOSED'],
+    'Timestamp': [datetime.now().strftime('%H:%M:%S')]*4
+})
+
+st.dataframe(telemetry, use_container_width=True)
+# -------------------------------------------------
+# Alarm management
+# -------------------------------------------------
+st.subheader('🚨 Active Alarms')
+
+alarms = pd.DataFrame({
+    'Priority': ['HIGH', 'MEDIUM'],
+    'Message': [
+        'FDR-04 current exceeded threshold',
+        'Town Y voltage below 0.95 pu'
+    ],
+    'Time': [datetime.now().strftime('%H:%M:%S')]*2
+})
+
+st.dataframe(alarms, use_container_width=True)
+
+st.error('1 HIGH priority alarm requires operator acknowledgement')
+# -------------------------------------------------
+# Utility Data Gateway
+# -------------------------------------------------
+st.markdown('---')
+st.subheader('🔌 Utility Data Gateway')
+
+st.code('''
+Future integration sources:
+- SCADA OPC-UA Server
+- Modbus TCP RTU
+- IEC 60870-5-104 Gateway
+- MQTT Smart Meter Broker
+- Utility REST API
+- Historian Database (SQL)
+''')
+
+st.caption('Current version uses simulated telemetry; architecture is ready for real utility data integration.')
+
+sc1, sc2, sc3 = st.columns(3)
+
+sc1.metric('SCADA Server', 'CONNECTED')
+sc2.metric('RTU Heartbeat', 'OK')
+sc3.metric('Last Telemetry', datetime.now().strftime('%H:%M:%S'))
+
+st.success('SCADA communication channel healthy (simulated telemetry)')
 
 # -------------------------------------------------
 # Data
