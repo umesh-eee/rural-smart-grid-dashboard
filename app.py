@@ -1,20 +1,230 @@
 import streamlit as st
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 
 st.set_page_config(page_title='Smart Grid Dashboard', layout='wide')
 
+# -------------------------------------------------
+# Header
+# -------------------------------------------------
 st.title('⚡ Rural Smart Grid Monitoring Dashboard')
-
 st.markdown('### Warangal Distribution Zone')
 
-col1, col2, col3 = st.columns(3)
+# -------------------------------------------------
+# Data
+# -------------------------------------------------
+data = {
+    'Area': ['Village A', 'Village B', 'Village C', 'Town X', 'Town Y', 'City Z'],
+    'Available_MW': [2.5, 1.2, 3.0, 5.0, 4.5, 20.0],
+    'Demand_MW': [2.0, 1.8, 2.5, 4.7, 5.2, 22.0],
+    'Status': ['ON', 'OFF', 'ON', 'ON', 'ALERT', 'ALERT'],
+    'Voltage': [232, 218, 229, 235, 221, 227],
+    'PF': [0.95, 0.88, 0.94, 0.96, 0.90, 0.92],
+    'Lat': [17.90, 17.85, 17.92, 18.00, 18.05, 17.97],
+    'Lon': [79.60, 79.55, 79.68, 79.72, 79.80, 79.65]
+}
 
-with col1:
-    st.metric('Available Power', '28 MW')
+df = pd.DataFrame(data)
 
-with col2:
-    st.metric('Current Demand', '31 MW', '-3 MW deficit')
+available = df['Available_MW'].sum()
+demand = df['Demand_MW'].sum()
+deficit = available - demand
+outages = (df['Status'] == 'OFF').sum()
 
-with col3:
-    st.metric('Active Outages', '2 Feeders')
+# -------------------------------------------------
+# KPI cards
+# -------------------------------------------------
+c1, c2, c3 = st.columns(3)
 
-st.success('System running successfully')
+c1.metric('Available Power', f'{available:.1f} MW')
+c2.metric('Current Demand', f'{demand:.1f} MW', f'{deficit:.1f} MW')
+c3.metric('Active Outages', outages)
+
+if deficit < 0:
+    st.error(f'⚠ Power deficit of {abs(deficit):.1f} MW detected')
+else:
+    st.success('Power supply is sufficient')
+
+# -------------------------------------------------
+# Area selector
+# -------------------------------------------------
+st.subheader('Select Area')
+
+selected_area = st.selectbox('Area', df['Area'])
+
+area_data = df[df['Area'] == selected_area].iloc[0]
+
+a1, a2, a3, a4 = st.columns(4)
+
+a1.metric('Available', f"{area_data['Available_MW']} MW")
+a2.metric('Demand', f"{area_data['Demand_MW']} MW")
+a3.metric('Voltage', f"{area_data['Voltage']} V")
+a4.metric('Power Factor', f"{area_data['PF']:.2f}")
+
+status = area_data['Status']
+
+if status == 'ON':
+    st.success(f'🟢 {selected_area} feeder is ON')
+elif status == 'OFF':
+    st.error(f'🔴 {selected_area} feeder is OFF')
+else:
+    st.warning(f'🟡 {selected_area} feeder is under ALERT')
+
+# -------------------------------------------------
+# Status table
+# -------------------------------------------------
+st.subheader('📋 Area Status')
+
+display_df = df[['Area', 'Available_MW', 'Demand_MW', 'Status']]
+st.dataframe(display_df, use_container_width=True)
+
+# -------------------------------------------------
+# Demand chart
+# -------------------------------------------------
+st.subheader('📊 Load Demand by Area')
+
+fig = px.bar(
+    df,
+    x='Area',
+    y='Demand_MW',
+    color='Status',
+    text='Demand_MW',
+    title='Area-wise Load Demand'
+)
+
+fig.update_traces(textposition='outside')
+st.plotly_chart(fig, use_container_width=True)
+
+# -------------------------------------------------
+# Trend chart
+# -------------------------------------------------
+st.subheader('📈 24-Hour Load Trend')
+
+hours = list(range(24))
+trend = [1.2,1.1,1.0,1.0,1.1,1.3,1.8,2.2,2.8,3.5,4.2,4.8,
+         5.0,4.9,4.7,4.4,4.2,4.5,5.1,5.4,5.0,4.0,3.0,2.0]
+
+trend_df = pd.DataFrame({'Hour': hours, 'Load_MW': trend})
+
+fig2 = px.line(
+    trend_df,
+    x='Hour',
+    y='Load_MW',
+    markers=True,
+    title='24-Hour Demand Trend'
+)
+
+st.plotly_chart(fig2, use_container_width=True)
+
+# -------------------------------------------------
+# Map
+# -------------------------------------------------
+st.subheader('🗺️ Outage Monitoring Map')
+
+map_fig = go.Figure()
+
+colors = {'ON':'green','OFF':'red','ALERT':'orange'}
+
+for _, row in df.iterrows():
+    map_fig.add_trace(go.Scattermap(
+        lat=[row['Lat']],
+        lon=[row['Lon']],
+        mode='markers+text',
+        marker=dict(size=14, color=colors[row['Status']]),
+        text=[row['Area']],
+        textposition='top center',
+        name=row['Area']
+    ))
+
+map_fig.update_layout(
+    map=dict(
+        style='open-street-map',
+        center=dict(lat=17.95, lon=79.68),
+        zoom=8
+    ),
+    height=500,
+    margin=dict(l=0, r=0, t=0, b=0)
+)
+
+st.plotly_chart(map_fig, use_container_width=True)
+
+# -------------------------------------------------
+# Analytics
+# -------------------------------------------------
+st.markdown('---')
+st.header('🧠 Smart Grid Analytics Engine')
+
+df['Load_Percent'] = (df['Demand_MW'] / df['Available_MW']) * 100
+
+overloaded = df[df['Load_Percent'] > 100]
+
+st.subheader('⚠ Overload Detection')
+
+if len(overloaded) > 0:
+    st.error('Overloaded Areas Detected')
+    st.dataframe(
+        overloaded[['Area','Available_MW','Demand_MW','Load_Percent']],
+        use_container_width=True
+    )
+else:
+    st.success('No overloaded areas detected')
+
+# Prediction
+st.subheader('🔮 Next Hour Demand Prediction')
+
+predicted = demand * 1.05
+
+st.metric(
+    'Predicted Demand',
+    f'{predicted:.1f} MW',
+    f'+{predicted-demand:.1f} MW'
+)
+
+# Priority ranking
+st.subheader('🏥 Feeder Priority Ranking')
+
+priority_df = pd.DataFrame({
+    'Feeder':['Hospital','Water Supply','Emergency','School','Residential'],
+    'Priority':[1,2,3,4,5]
+})
+
+st.dataframe(priority_df, use_container_width=True)
+
+# Load shedding
+st.subheader('💡 Load Shedding Recommendation')
+
+reduction = max(0, predicted - available)
+
+if reduction > 0:
+    st.warning(f'Required reduction: {reduction:.1f} MW')
+    st.markdown('**Suggested sequence:**')
+    st.markdown('1. Residential')
+    st.markdown('2. School')
+    st.markdown('3. Commercial')
+    st.markdown('4. Keep Hospital and Water Supply ON')
+else:
+    st.success('No load shedding required')
+
+# Advisory
+st.subheader('📢 Operator Advisory')
+
+msg = f'''
+Current demand: {demand:.1f} MW
+Predicted demand: {predicted:.1f} MW
+Available power: {available:.1f} MW
+'''
+
+st.code(msg)
+
+# Download button
+csv = df.to_csv(index=False).encode('utf-8')
+
+st.download_button(
+    '📥 Download Area Report',
+    csv,
+    file_name='smart_grid_report.csv',
+    mime='text/csv'
+)
+
+st.info('Smart Grid Monitoring Platform | Developed by Umesh')
