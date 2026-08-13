@@ -414,6 +414,96 @@ st.info(
 st.caption(
     'Outage communication module for utility customer notification.'
 )
+# =================================================
+# AI FEEDER HEALTH SCORE
+# =================================================
+
+st.markdown('---')
+st.header('🧠 AI Feeder Health Score')
+
+health_df = df.copy()
+
+# Health score calculation
+health_df['Voltage_Score'] = 100 - abs(health_df['Voltage'] - 230) * 2
+health_df['PF_Score'] = health_df['PF'] * 100
+health_df['Load_Score'] = 100 - (health_df['Load_Percent'] - 70).clip(lower=0)
+
+health_df['Health_Score'] = (
+    0.4 * health_df['Voltage_Score'] +
+    0.3 * health_df['PF_Score'] +
+    0.3 * health_df['Load_Score']
+)
+
+health_df['Health_Score'] = health_df['Health_Score'].clip(0, 100).round(0)
+
+def health_status(score):
+    if score >= 80:
+        return '🟢 Healthy'
+    elif score >= 60:
+        return '🟡 Warning'
+    else:
+        return '🔴 Critical'
+
+health_df['Health_Status'] = health_df['Health_Score'].apply(health_status)
+
+display_health = health_df[['Area', 'Health_Score', 'Health_Status']]
+
+st.dataframe(display_health, use_container_width=True)
+
+# Best and worst feeder
+best_feeder = health_df.loc[health_df['Health_Score'].idxmax()]
+worst_feeder = health_df.loc[health_df['Health_Score'].idxmin()]
+
+c1, c2 = st.columns(2)
+
+c1.metric(
+    'Best Feeder',
+    best_feeder['Area'],
+    f"{best_feeder['Health_Score']:.0f}"
+)
+
+c2.metric(
+    'Weakest Feeder',
+    worst_feeder['Area'],
+    f"{worst_feeder['Health_Score']:.0f}"
+)
+
+# Health chart
+fig_health = px.bar(
+    health_df,
+    x='Area',
+    y='Health_Score',
+    color='Health_Status',
+    text='Health_Score',
+    title='AI Feeder Health Index'
+)
+
+fig_health.update_traces(textposition='outside')
+fig_health.update_layout(yaxis_range=[0, 100])
+
+st.plotly_chart(fig_health, use_container_width=True)
+
+# Maintenance recommendation
+st.subheader('🔧 Predictive Maintenance Recommendation')
+
+critical_feeders = health_df[health_df['Health_Score'] < 60]
+
+if len(critical_feeders) > 0:
+    st.error('Immediate inspection recommended for critical feeders.')
+    st.dataframe(
+        critical_feeders[['Area', 'Health_Score']],
+        use_container_width=True
+    )
+else:
+    st.success('No feeder requires immediate inspection.')
+
+st.info(
+    'Health score combines voltage quality, power factor, and feeder loading into a single maintenance index.'
+)
+
+st.caption(
+    'AI-inspired feeder health analytics for preventive maintenance prioritization.'
+)
 # -------------------------------------------------
 # Map
 # -------------------------------------------------
