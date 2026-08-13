@@ -373,6 +373,47 @@ st.info(
 st.caption(
     'Educational analytics module for abnormal usage detection.'
 )
+# =================================================
+# SMS / WHATSAPP ALERT SIMULATION
+# =================================================
+
+st.markdown('---')
+st.header('📱 SMS / WhatsApp Alert Simulation')
+
+outage_area = 'Village B'
+estimated_restore = '45 minutes'
+
+alert_message = f'''
+🚨 POWER OUTAGE ALERT
+
+Area: {outage_area}
+Status: Feeder OFF
+Restoration Team: Informed
+Estimated Restoration Time: {estimated_restore}
+
+Please avoid unnecessary electrical load after supply restoration.
+'''
+
+st.text_area(
+    'Generated Alert Message',
+    alert_message,
+    height=180
+)
+
+st.success('Alert message generated successfully.')
+
+c1, c2 = st.columns(2)
+
+c1.button('📩 Simulate SMS Sent')
+c2.button('💬 Simulate WhatsApp Sent')
+
+st.info(
+    'Current version demonstrates alert generation workflow; telecom integration can be added later.'
+)
+
+st.caption(
+    'Outage communication module for utility customer notification.'
+)
 # -------------------------------------------------
 # Map
 # -------------------------------------------------
