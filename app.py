@@ -426,8 +426,7 @@ health_df = df.copy()
 # Health score calculation
 health_df['Voltage_Score'] = 100 - abs(health_df['Voltage'] - 230) * 2
 health_df['PF_Score'] = health_df['PF'] * 100
-health_df['Load_Score'] = 100 - (health_df['Load_Percent'] - 70).clip(lower=0)
-
+health_df['Load_Score'] = 100 - (health_df['Demand_MW'] * 4)
 health_df['Health_Score'] = (
     0.4 * health_df['Voltage_Score'] +
     0.3 * health_df['PF_Score'] +
