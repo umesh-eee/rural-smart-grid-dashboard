@@ -262,7 +262,69 @@ else:
     st.info(f'Reserve margin available: {reserve_margin:.1f} MW.')
 
 st.caption('Forecast generated from recent load trend (educational AI-style model).')
+# =================================================
+# TRANSFORMER OVERLOAD PREDICTION
+# =================================================
 
+st.markdown('---')
+st.header('⚡ Transformer Overload Prediction')
+
+transformers = pd.DataFrame({
+    'Transformer': ['T1', 'T2', 'T3'],
+    'Rated_MVA': [10, 16, 25],
+    'Current_Load_MVA': [6.5, 14.2, 18.0]
+})
+
+transformers['Loading_%'] = (
+    transformers['Current_Load_MVA'] /
+    transformers['Rated_MVA']
+) * 100
+
+def classify_loading(x):
+    if x >= 90:
+        return '🔴 Critical'
+    elif x >= 80:
+        return '🟡 Warning'
+    else:
+        return '🟢 Normal'
+
+transformers['Status'] = transformers['Loading_%'].apply(classify_loading)
+
+st.dataframe(transformers, use_container_width=True)
+
+critical = transformers[transformers['Loading_%'] >= 90]
+warning = transformers[
+    (transformers['Loading_%'] >= 80) &
+    (transformers['Loading_%'] < 90)
+]
+
+if len(critical) > 0:
+    st.error('Critical transformer overload detected.')
+elif len(warning) > 0:
+    st.warning('Transformer approaching overload condition.')
+else:
+    st.success('All transformers operating within safe limits.')
+
+fig_tx = px.bar(
+    transformers,
+    x='Transformer',
+    y='Loading_%',
+    color='Status',
+    text='Loading_%',
+    title='Transformer Loading'
+)
+
+fig_tx.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
+
+st.plotly_chart(fig_tx, use_container_width=True)
+
+max_tx = transformers.loc[transformers['Loading_%'].idxmax()]
+
+st.info(
+    f"Highest loading: {max_tx['Transformer']} at {max_tx['Loading_%']:.1f}%"
+)
+
+st.caption('Transformers above 80% loading are flagged for preventive action.')
 # -------------------------------------------------
 # Map
 # -------------------------------------------------
