@@ -325,6 +325,54 @@ st.info(
 )
 
 st.caption('Transformers above 80% loading are flagged for preventive action.')
+# =================================================
+# POWER THEFT DETECTION
+# =================================================
+
+st.markdown('---')
+st.header('🔍 Power Theft Detection')
+
+consumption = pd.DataFrame({
+    'Consumer': ['C-101', 'C-102', 'C-103', 'C-104', 'C-105'],
+    'Yesterday_kWh': [120, 95, 140, 88, 110],
+    'Today_kWh': [118, 22, 135, 85, 108]
+})
+
+consumption['Drop_%'] = (
+    (consumption['Yesterday_kWh'] - consumption['Today_kWh']) /
+    consumption['Yesterday_kWh']
+) * 100
+
+consumption['Suspicious'] = consumption['Drop_%'] > 50
+
+st.dataframe(consumption, use_container_width=True)
+
+suspects = consumption[consumption['Suspicious'] == True]
+
+if len(suspects) > 0:
+    st.error(f'{len(suspects)} suspicious consumer(s) detected.')
+    st.subheader('⚠ Inspection Recommended')
+    st.dataframe(suspects, use_container_width=True)
+else:
+    st.success('No suspicious consumption pattern detected.')
+
+fig_theft = px.bar(
+    consumption,
+    x='Consumer',
+    y=['Yesterday_kWh', 'Today_kWh'],
+    barmode='group',
+    title='Consumption Comparison'
+)
+
+st.plotly_chart(fig_theft, use_container_width=True)
+
+st.info(
+    'Sudden consumption drop greater than 50% is flagged for inspection.'
+)
+
+st.caption(
+    'Educational analytics module for abnormal usage detection.'
+)
 # -------------------------------------------------
 # Map
 # -------------------------------------------------
