@@ -188,6 +188,80 @@ fig2 = px.line(
 )
 
 st.plotly_chart(fig2, use_container_width=True)
+# =================================================
+# AI LOAD FORECASTING MODULE
+# =================================================
+
+st.markdown('---')
+st.header('🤖 AI Load Forecasting')
+
+# Historical load data (last 24 hours)
+historical_load = trend_df['Load_MW'].tolist()
+
+# Simple AI-style forecasting using recent trend
+recent_changes = []
+for i in range(len(historical_load)-5, len(historical_load)-1):
+    recent_changes.append(historical_load[i+1] - historical_load[i])
+
+avg_change = sum(recent_changes) / len(recent_changes)
+
+next_hour_load = historical_load[-1] + avg_change
+
+# Peak hour detection
+peak_value = max(historical_load)
+peak_hour = historical_load.index(peak_value)
+
+# Display metrics
+f1, f2, f3 = st.columns(3)
+
+f1.metric('Current Load', f'{historical_load[-1]:.1f} MW')
+f2.metric('Predicted Next Hour', f'{next_hour_load:.1f} MW',
+          f'{next_hour_load-historical_load[-1]:.1f} MW')
+f3.metric('Peak Hour', f'{peak_hour}:00')
+
+# Alert
+if next_hour_load > available:
+    st.warning('⚠ Predicted demand may exceed available power.')
+else:
+    st.success('Predicted demand is within safe operating limit.')
+
+# Forecast chart
+forecast_hours = list(range(24)) + [24]
+forecast_values = historical_load + [next_hour_load]
+
+forecast_df = pd.DataFrame({
+    'Hour': forecast_hours,
+    'Load_MW': forecast_values,
+    'Type': ['Historical']*24 + ['Forecast']
+})
+
+fig_forecast = px.line(
+    forecast_df,
+    x='Hour',
+    y='Load_MW',
+    color='Type',
+    markers=True,
+    title='AI-Based Load Forecast'
+)
+
+fig_forecast.update_layout(
+    xaxis_title='Hour',
+    yaxis_title='Load (MW)'
+)
+
+st.plotly_chart(fig_forecast, use_container_width=True)
+
+# Operator recommendation
+reserve_margin = available - next_hour_load
+
+st.subheader('🧠 Forecast Recommendation')
+
+if reserve_margin < 2:
+    st.error(f'Reserve margin low: {reserve_margin:.1f} MW. Keep standby feeder ready.')
+else:
+    st.info(f'Reserve margin available: {reserve_margin:.1f} MW.')
+
+st.caption('Forecast generated from recent load trend (educational AI-style model).')
 
 # -------------------------------------------------
 # Map
